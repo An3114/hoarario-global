@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Horario Diario de Estudio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body {
+    background: linear-gradient(135deg, #e0f7fa, #80deea);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  .container {
+    max-width: 900px;
+  }
+  .table-fixed {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .table-fixed th,
+  .table-fixed td {
+    overflow-wrap: break-word;
+  }
+  button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px #0284c7;
+  }
+</style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-10 px-4">
+  <h1 class="text-center font-bold mb-1 text-lg sm:text-xl">TECNOLOGÍA EN DESARROLLO DE SISTEMAS ELECTRÓNICOS</h1>
+  <h2 class="text-center mb-8 font-medium text-sm sm:text-base">Semestre: II &nbsp;&nbsp; Grupo: Principal &nbsp;&nbsp; Jornada: Diurna</h2>
+
+  <div class="container bg-white rounded-lg shadow-lg p-6">
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+      <div class="text-lg sm:text-xl font-semibold text-cyan-700">Horario de hoy:</div>
+      <button 
+        id="btnToggleComplete" 
+        class="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded transition"
+        aria-pressed="false"
+        aria-label="Mostrar horario completo"
+      >
+        Mostrar horario completo
+      </button>
+    </div>
+
+    <table class="table-fixed border-collapse border border-gray-300 w-full text-sm sm:text-base">
+      <thead>
+        <tr class="bg-cyan-100">
+          <th class="border border-gray-300 px-3 py-1 w-1/3">Asignatura</th>
+          <th class="border border-gray-300 px-3 py-1 w-1/4">Día</th>
+          <th class="border border-gray-300 px-3 py-1 w-1/4">Hora</th>
+          <th class="border border-gray-300 px-3 py-1 w-1/6">Aula</th>
+        </tr>
+      </thead>
+      <tbody id="scheduleBody" aria-live="polite" aria-relevant="all" class="text-gray-700">
+        <!-- Rows will be inserted here by JS -->
+      </tbody>
+    </table>
+  </div>
+
+<script>
+// Datos del horario
+const schedule = [
+  { asignatura: "LABORATORIO FISICA ELECTRICA", docente: "RUIZ PERALTA, ALFREDO", dia: "LUNES", entrada: "10:45 am", salida: "12:15 pm", aula: "L-Fis" },
+  { asignatura: "CALCULO INTEGRAL", docente: "ABUABARA CORTES, RICKI", dia: "MARTES", entrada: "7:45 am", salida: "9:15 am", aula: "B-203" },
+  { asignatura: "CALCULO INTEGRAL", docente: "ABUABARA CORTES, RICKI", dia: "MARTES", entrada: "9:15 am", salida: "10:00 am", aula: "B-203" },
+  { asignatura: "COMPETENCIAS COMUNICATIVAS II", docente: "CORONEL MONTAGUTH, YESSY", dia: "MARTES", entrada: "10:00 am", salida: "11:30 am", aula: "B-303" },
+  { asignatura: "DISENO CAD", docente: "BELTRAN LOPEZ, WILLIAM", dia: "MARTES", entrada: "6:15 pm", salida: "7:45 pm", aula: "S-213" },
+  { asignatura: "PROGRAMACION ESTRUCTURADA", docente: "SAAVEDRA MONTES, IVAN", dia: "MIÉRCOLES", entrada: "7:45 am", salida: "9:15 am", aula: "S-202" },
+  { asignatura: "FISICA ELECTRICA", docente: "RUIZ PERALTA, ALFREDO", dia: "MIÉRCOLES", entrada: "10:00 am", salida: "10:45 am", aula: "B-203" },
+  { asignatura: "FISICA ELECTRICA", docente: "RUIZ PERALTA, ALFREDO", dia: "MIÉRCOLES", entrada: "10:45 am", salida: "12:15 pm", aula: "B-203" },
+  { asignatura: "PROGRAMACION ESTRUCTURADA", docente: "SAAVEDRA MONTES, IVAN", dia: "VIERNES", entrada: "7:45 am", salida: "9:15 am", aula: "S-302" },
+  { asignatura: "INGLESES II", docente: "ROMERO PEREZ, MANUEL", dia: "VIERNES", entrada: "9:15 am", salida: "12:15 pm", aula: "S-101" },
+  { asignatura: "DISENO CAD", docente: "BELTRAN LOPEZ, WILLIAM", dia: "SÁBADO", entrada: "2:30 pm", salida: "4:00 pm", aula: "Aula Remota" }
+];
+
+// Traducir el día actual a mayúscula y sin tilde para comparar
+function getTodayKey() {
+  const dias = {
+    0: "DOMINGO",
+    1: "LUNES",
+    2: "MARTES",
+    3: "MIÉRCOLES",
+    4: "JUEVES",
+    5: "VIERNES",
+    6: "SÁBADO",
+  };
+  const today = new Date();
+  return dias[today.getDay()];
+}
+
+// Renderiza las filas por día filtrado o todo el horario completo
+function renderTable(filterDay = null) {
+  const tbody = document.getElementById("scheduleBody");
+  tbody.innerHTML = "";
+
+  let dataToRender;
+  if (filterDay) {
+    dataToRender = schedule.filter(item => item.dia === filterDay);
+  } else {
+    dataToRender = schedule;
+  }
+
+  if (dataToRender.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 4;
+    cell.className = "py-3 text-center text-gray-500 italic";
+    cell.textContent = filterDay ? `No hay registros para ${filterDay}.` : "No hay datos disponibles.";
+    row.appendChild(cell);
+    tbody.appendChild(row);
+    return;
+  }
+
+  dataToRender.forEach(({ asignatura, dia, entrada, salida, aula }) => {
+    const row = document.createElement("tr");
+    row.className = "hover:bg-cyan-50 transition";
+
+    const tdAsignatura = document.createElement("td");
+    tdAsignatura.className = "border border-gray-300 px-2 py-1";
+    tdAsignatura.textContent = asignatura;
+    tdAsignatura.setAttribute("title", asignatura);
+
+    const tdDia = document.createElement("td");
+    tdDia.className = "border border-gray-300 px-2 py-1 text-center";
+    tdDia.textContent = dia;
+
+    const tdHora = document.createElement("td");
+    tdHora.className = "border border-gray-300 px-2 py-1 text-center";
+    tdHora.textContent = `${entrada} - ${salida}`;
+
+    const tdAula = document.createElement("td");
+    tdAula.className = "border border-gray-300 px-2 py-1 text-center";
+    tdAula.textContent = aula;
+
+    row.appendChild(tdAsignatura);
+    row.appendChild(tdDia);
+    row.appendChild(tdHora);
+    row.appendChild(tdAula);
+
+    tbody.appendChild(row);
+  });
+}
+
+function setup() {
+  const todayKey = getTodayKey();
+  renderTable(todayKey);
+
+  const btn = document.getElementById("btnToggleComplete");
+
+  btn.addEventListener("click", () => {
+    if (btn.getAttribute("aria-pressed") === "false") {
+      renderTable(null);
+      btn.textContent = "Mostrar horario de hoy";
+      btn.setAttribute("aria-pressed", "true");
+      btn.setAttribute("aria-label", "Mostrar horario del día actual");
+    } else {
+      renderTable(todayKey);
+      btn.textContent = "Mostrar horario completo";
+      btn.setAttribute("aria-pressed", "false");
+      btn.setAttribute("aria-label", "Mostrar horario completo");
+    }
+  });
+}
+
+window.onload = setup;
+</script>
+</body>
+</html>
